@@ -4,7 +4,6 @@ import com.asiainfo.POJO.Greeting;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -15,9 +14,11 @@ import java.net.URI;
 
 class GreetingException extends RuntimeException {
     private long errId;
+
     public GreetingException(long errId) {
         this.errId = errId;
     }
+
     public long getErrId() {
         return errId;
     }
@@ -33,10 +34,9 @@ public class GreetingController {
             @PathVariable String name
     ) {
         System.out.println(name);
-        name = null;
         Greeting greeting = new Greeting(999, "hello");
 
-        if(name == null)
+        if (name == null)
             throw new GreetingException(12);
         else
             return greeting;

@@ -1,9 +1,7 @@
 package com.asiainfo.Util;
 
 import io.nats.client.*;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
@@ -14,13 +12,20 @@ public class NatsClient {
     private static Connection connection;
 
     public NatsClient() {
-        if(connection == null) {
+        if (connection == null) {
             connection = connect();
         }
     }
 
-    //订阅者
-    private Subscription subscribe;
+    public static String nats_request(String subject, String replySubject, String sendData) {
+        NatsClient client = new NatsClient();
+        return client.request(subject, replySubject, sendData);
+    }
+
+    public static String nats_request(String subject, String replySubject, String sendData, Duration duration) {
+        NatsClient client = new NatsClient();
+        return client.request(subject, replySubject, sendData, duration);
+    }
 
     private Connection connect() {
         //初始化Nats客户端链接，通过链接来获取数据
@@ -30,18 +35,17 @@ public class NatsClient {
                 "nats://132.121.116.31:4102",
                 "nats://132.121.116.33:4101",
                 "nats://132.121.116.32:4101",
-                "nats://132.121.116.31:4101" };
+                "nats://132.121.116.31:4101"};
         userName = "data";
         passWord = "data";
         Options options = new Options.Builder().servers(serverUrls)
                 .userInfo(userName, passWord).maxReconnects(-1).build();
         try {
             connection = Nats.connect(options);
-            if(connection.getStatus() != Connection.Status.CONNECTED) {
+            if (connection.getStatus() != Connection.Status.CONNECTED) {
                 connection = Nats.connect(options);
             }
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Connect to Nats Server failed. please check nat cluster status?");
         }
@@ -53,58 +57,36 @@ public class NatsClient {
         return connection;
     }
 
-    public Subscription send(String subject, String replySubject, String sendData) {
+    public String request(String subject, String replySubject, String sendData) {
+        //默认不带超时时间的话，超时时间为1秒
+        return request(subject, replySubject, sendData, Duration.ofMillis(1000));
+    }
+
+    public String request(String subject, String replySubject, String sendData, Duration duration) {
+        //获取一个Nats连接
         if (connection == null) {
             connection = connect();
         }
 
-        //订阅该接收主题
-        subscribe = connection.subscribe(replySubject);
+        //从连接中获取一个订阅者接收指定主题
+        Subscription subscriber = connection.subscribe(replySubject);
+        if (subscriber == null) {
+            return null;
+        }
 
-        //发送数据
+        //开始发送数据到发送主题上
         connection.publish(subject, sendData.getBytes());
 
-        //返回订阅者
-        return subscribe;
-    }
-
-    public String recv() {
-        if(connection == null) {
-            connection = connect();
-        }
-
-        if(subscribe == null) {
-            return null;
-        }
-
-        //从该主题接收一条数据
+        //从指定主题的订阅者中接收一条数据
         try {
-            Message message = subscribe.nextMessage(Duration.ofMillis(5000));
-            return new String(message.getData(), StandardCharsets.UTF_8);
+            Message message = subscriber.nextMessage(duration);
+            if (message != null) {
+                return new String(message.getData(), StandardCharsets.UTF_8);
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
         return null;
     }
 
-    public String recv(Subscription subscribe) {
-        if(connection == null) {
-            connection = connect();
-        }
-
-        if (subscribe == null) {
-            return null;
-        }
-
-        //从该主题接收一条数据
-        try {
-            Message message = subscribe.nextMessage(Duration.ofMillis(5000));
-            return new String(message.getData(), StandardCharsets.UTF_8);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
 }

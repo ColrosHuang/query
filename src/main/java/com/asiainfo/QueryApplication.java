@@ -8,7 +8,7 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan({"com.Controller", "com.asiainfo.Controller"})
 public class QueryApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(QueryApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(QueryApplication.class, args);
+    }
 }
